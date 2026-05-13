@@ -4,26 +4,36 @@ on:
   workflow_dispatch:
     inputs:
       packages:
-        description: "Example: django djangorestframework pillow"
+        description: "Example: stable-baselines3 MetaTrader5"
         required: true
         type: string
+
       python_version:
         description: "Python version"
         required: true
-        default: "3.13"
+        default: "3.11"
         type: choice
         options:
-          - "3.13"
           - "3.12"
           - "3.11"
           - "3.10"
+
+      os:
+        description: "Target OS"
+        required: true
+        default: "windows-latest"
+        type: choice
+        options:
+          - "windows-latest"
+          - "ubuntu-latest"
+          - "macos-latest"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   download-packages:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os }}
 
     permissions:
       contents: write
@@ -38,17 +48,19 @@ jobs:
           python-version: ${{ inputs.python_version }}
 
       - name: Download packages
+        shell: bash
         run: |
           python -m pip install --upgrade pip
-          mkdir -p packages
+          mkdir -p packages/${{ inputs.os }}/py${{ inputs.python_version }}
 
           echo "${{ inputs.packages }}" | tr ' ' '\n' > requirements.txt
 
           pip download \
             -r requirements.txt \
-            -d packages
+            -d packages/${{ inputs.os }}/py${{ inputs.python_version }}
 
       - name: Commit downloaded packages
+        shell: bash
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -58,6 +70,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Add downloaded Python packages"
+            git commit -m "Add downloaded Python packages for ${{ inputs.os }} Python ${{ inputs.python_version }}"
             git push
           fi
