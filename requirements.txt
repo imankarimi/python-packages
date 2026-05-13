@@ -1,3 +1,1 @@
-djangorestframework
-pillow
-requests
+pandas
