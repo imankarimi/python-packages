@@ -1,0 +1,172 @@
+name: Universal Python Package Downloader
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Packages: django pillow stable-baselines3 torch MetaTrader5"
+        required: true
+        type: string
+
+      python_version:
+        description: "Python version"
+        required: true
+        default: "3.11"
+        type: choice
+        options:
+          - "3.13"
+          - "3.12"
+          - "3.11"
+          - "3.10"
+
+      os:
+        description: "Target operating system"
+        required: true
+        default: "windows-2022"
+        type: choice
+        options:
+          - "windows-2022"
+          - "ubuntu-22.04"
+          - "macos-14"
+
+      index_url:
+        description: "Optional custom index URL, example PyTorch CPU: https://download.pytorch.org/whl/cpu"
+        required: false
+        type: string
+
+      extra_pip_args:
+        description: "Optional extra pip args"
+        required: false
+        default: ""
+        type: string
+
+      output_mode:
+        description: "release is best for heavy packages; commit only for small packages"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - "release"
+          - "commit"
+
+jobs:
+  download-packages:
+    runs-on: ${{ inputs.os }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Prepare package folder
+        shell: bash
+        run: |
+          set -e
+
+          SAFE_OS="${{ inputs.os }}"
+          SAFE_PY="py${{ inputs.python_version }}"
+          PACKAGE_DIR="packagehouse/${SAFE_OS}/${SAFE_PY}"
+
+          mkdir -p "$PACKAGE_DIR"
+
+          echo "${{ inputs.packages }}" | tr ' ' '\n' | sed '/^$/d' > requirements.txt
+
+          echo "PACKAGE_DIR=$PACKAGE_DIR" >> "$GITHUB_ENV"
+          echo "ARCHIVE_NAME=packages-${SAFE_OS}-${SAFE_PY}.tar.gz" >> "$GITHUB_ENV"
+          echo "TAG_NAME=packages-${SAFE_OS}-${SAFE_PY}" >> "$GITHUB_ENV"
+
+      - name: Download packages from default PyPI
+        if: ${{ inputs.index_url == '' }}
+        shell: bash
+        run: |
+          set -e
+
+          python -m pip install --upgrade pip
+
+          pip download \
+            -r requirements.txt \
+            -d "$PACKAGE_DIR" \
+            ${{ inputs.extra_pip_args }}
+
+      - name: Download packages from custom index
+        if: ${{ inputs.index_url != '' }}
+        shell: bash
+        run: |
+          set -e
+
+          python -m pip install --upgrade pip
+
+          pip download \
+            -r requirements.txt \
+            -d "$PACKAGE_DIR" \
+            --index-url "${{ inputs.index_url }}" \
+            ${{ inputs.extra_pip_args }}
+
+      - name: Create install helper
+        shell: bash
+        run: |
+          cat > install-offline.sh << 'EOF'
+          #!/usr/bin/env bash
+          set -e
+
+          PACKAGE_DIR="${1:-packagehouse}"
+
+          python -m pip install \
+            --no-index \
+            --find-links="$PACKAGE_DIR" \
+            -r requirements.txt
+          EOF
+
+          chmod +x install-offline.sh
+
+          cat > install-offline.bat << 'EOF'
+          @echo off
+          set PACKAGE_DIR=%1
+          if "%PACKAGE_DIR%"=="" set PACKAGE_DIR=packagehouse
+
+          python -m pip install --no-index --find-links=%PACKAGE_DIR% -r requirements.txt
+          EOF
+
+      - name: Compress packages
+        shell: bash
+        run: |
+          tar -czf "$ARCHIVE_NAME" packagehouse requirements.txt install-offline.sh install-offline.bat
+
+      - name: Upload packages to GitHub Release
+        if: ${{ inputs.output_mode == 'release' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Offline packages - ${{ inputs.os }} Python ${{ inputs.python_version }}
+          files: ${{ env.ARCHIVE_NAME }}
+          body: |
+            Offline Python packages.
+
+            OS: ${{ inputs.os }}
+            Python: ${{ inputs.python_version }}
+
+            Packages:
+            ${{ inputs.packages }}
+
+      - name: Commit packages to repository
+        if: ${{ inputs.output_mode == 'commit' }}
+        shell: bash
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add packagehouse requirements.txt install-offline.sh install-offline.bat
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add offline packages for ${{ inputs.os }} Python ${{ inputs.python_version }}"
+            git push
+          fi
