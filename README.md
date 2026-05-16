@@ -1,70 +1,85 @@
-# Offline Python Package Downloader
+# Universal Offline Python Package Downloader
 
-Download and store Python packages directly in your GitHub repository using GitHub Actions, then install them later without internet access.
+Download Python packages directly from GitHub Actions and use them later without internet access.
 
-Perfect for:
+Supports:
 
-* Restricted networks
-* Offline servers
-* Air-gapped environments
-* Slow or unstable internet
-* Building your own Python package archive
+- Windows
+- Linux
+- macOS
+- Heavy packages like:
+  - PyTorch
+  - Stable-Baselines3
+  - TensorFlow
+  - OpenCV
+  - MetaTrader5
+- Custom package indexes
+- Offline installation
+- GitHub Releases for huge package collections
 
 ---
 
 # Features
 
-* Download packages directly from PyPI using GitHub Actions
-* Save packages permanently in your repository
-* Install packages later with `pip` completely offline
-* Supports custom Python versions
-* Automatically downloads dependencies
-* No local setup required
+- Download packages from PyPI automatically
+- Download all dependencies
+- Supports Windows, Linux, and macOS
+- Works with AI/ML packages
+- Supports custom pip indexes
+- Saves packages into GitHub Releases
+- Offline installation support
+- No local setup required
+
+---
+
+# Supported Platforms
+
+| Platform | Runner |
+|---|---|
+| Windows | `windows-2022` |
+| Linux | `ubuntu-22.04` |
+| macOS Intel | `macos-13` |
+| macOS Apple Silicon / Newer | `macos-14` |
 
 ---
 
 # How It Works
 
 1. Fork this repository
-2. Run the GitHub Action
+2. Run GitHub Action
 3. Enter package names
-4. GitHub downloads all required wheels
-5. Packages are saved into the `packages/` folder
-6. Download the repo and install offline
+4. GitHub downloads all packages and dependencies
+5. Packages are compressed automatically
+6. Download archive from Releases
+7. Install packages offline later
 
 ---
 
-# Fork This Repository
+# Fork Repository
 
-Click the **Fork** button on the top-right of this repository.
-
-Or visit:
+Click:
 
 ```text
-https://github.com/YOUR_USERNAME/YOUR_REPO/fork
-```
+Fork
+````
+
+on the top-right of GitHub.
 
 ---
 
-# How To Download Packages
+# Run Downloader
 
-## 1. Open Actions
-
-Go to:
+Open:
 
 ```text
 Actions
 ```
 
-Then select:
+Select:
 
 ```text
-Download Python Packages
+Universal Python Package Downloader
 ```
-
----
-
-## 2. Run Workflow
 
 Click:
 
@@ -72,225 +87,309 @@ Click:
 Run workflow
 ```
 
-You will see inputs:
+---
 
-### Packages
+# Workflow Inputs
+
+## Packages
 
 Example:
 
 ```text
-django djangorestframework pillow celery redis
+django pillow requests
 ```
 
-You can also specify versions:
+AI example:
+
+```text
+stable-baselines3 torch torchvision torchaudio
+```
+
+Trading example:
+
+```text
+MetaTrader5 pandas numpy
+```
+
+Version example:
 
 ```text
 django==5.2.1 pillow==11.2.1
 ```
 
-### Python Version
+---
 
-Choose your target Python version:
+## Python Version
+
+Choose target Python version:
 
 * 3.13
 * 3.12
 * 3.11
 * 3.10
 
+Always match the Python version of your offline system.
+
 ---
 
-# Downloaded Files
+## OS
 
-After workflow finishes successfully, packages will be stored in:
+Choose target operating system:
+
+* `windows-2022`
+* `ubuntu-22.04`
+* `macos-13`
+* `macos-14`
+
+---
+
+## Index URL
+
+Optional custom package index.
+
+Example for PyTorch CPU:
 
 ```text
-packages/
+https://download.pytorch.org/whl/cpu
 ```
+
+Leave empty for normal PyPI.
+
+---
+
+## Extra Pip Args
+
+Optional additional pip arguments.
 
 Example:
 
 ```text
-packages/
-├── Django-5.2.1-py3-none-any.whl
-├── pillow-11.2.1-cp313-cp313-manylinux.whl
-├── redis-6.0.0-py3-none-any.whl
-└── ...
+--prefer-binary
 ```
 
 ---
 
-# How To Use Offline
+## Output Mode
 
-## 1. Download Repository
+### release
 
-Clone or download ZIP:
+Recommended for heavy packages.
 
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-```
+Uploads compressed archive to GitHub Releases.
 
-Or:
+Best for:
+
+* PyTorch
+* TensorFlow
+* CUDA wheels
+* Large AI libraries
+
+### commit
+
+Commits downloaded files directly into repository.
+
+Best for:
+
+* Small packages
+* Utilities
+* Lightweight libraries
+
+---
+
+# Download Results
+
+After workflow finishes:
+
+Open:
 
 ```text
-Code → Download ZIP
+Releases
 ```
 
----
-
-## 2. Install Without Internet
-
-Move the repository to your offline machine.
-
-Then run:
-
-```bash
-pip install --no-index --find-links=packages -r requirements.txt
-```
-
-Or install a single package:
-
-```bash
-pip install --no-index --find-links=packages django
-```
-
----
-
-# Important Notes
-
-## OS Compatibility
-
-This workflow currently uses:
-
-```text
-ubuntu-latest
-```
-
-So downloaded wheels are usually Linux-compatible.
-
-If you need:
-
-* macOS packages
-* Windows packages
-
-Create separate workflows using:
-
-```yaml
-runs-on: macos-latest
-```
-
-or
-
-```yaml
-runs-on: windows-latest
-```
-
----
-
-## Python Version Compatibility
-
-Always download packages using the same Python version as your offline machine.
+Download generated archive:
 
 Example:
 
-If offline system uses:
-
-```bash
-Python 3.13
-```
-
-Then select:
-
 ```text
-3.13
+packages-windows-2022-py3.11.tar.gz
 ```
-
-inside workflow inputs.
 
 ---
 
-# Example Offline Installation
+# Extract Packages
+
+Linux/macOS:
+
+```bash
+tar -xzf packages-windows-2022-py3.11.tar.gz
+```
+
+Windows:
+
+Use:
+
+* 7zip
+* WinRAR
+* Windows built-in extractor
+
+---
+
+# Offline Installation
+
+## Linux/macOS
+
+```bash
+chmod +x install-offline.sh
+
+./install-offline.sh packagehouse/windows-2022/py3.11
+```
+
+---
+
+## Windows
+
+```bat
+install-offline.bat packagehouse\windows-2022\py3.11
+```
+
+---
+
+# Manual Offline Installation
+
+You can also install manually:
 
 ```bash
 pip install \
   --no-index \
-  --find-links=packages \
-  django djangorestframework pillow
+  --find-links=packagehouse/windows-2022/py3.11 \
+  -r requirements.txt
 ```
 
 ---
 
-# Advanced Usage
-
-## Download Using requirements.txt
-
-You can modify workflow to use:
-
-```text
-requirements.txt
-```
-
-instead of manual input.
+# Examples
 
 ---
-
-## Store Huge Package Collections
-
-You can build your own offline mirror containing:
-
-* AI libraries
-* Django stack
-* Data science tools
-* DevOps packages
-* Trading libraries
-* CUDA-compatible wheels
-
----
-
-# Example Collections
 
 ## Django Backend
+
+### Packages
 
 ```text
 django
 djangorestframework
 psycopg2-binary
+pillow
 celery
 redis
 gunicorn
-pillow
 ```
 
-## AI / ML
+### Recommended
+
+| Setting | Value        |
+| ------- | ------------ |
+| Python  | 3.11         |
+| OS      | ubuntu-22.04 |
+| Output  | release      |
+
+---
+
+## AI / Reinforcement Learning
+
+### Packages
 
 ```text
+stable-baselines3
+torch
+torchvision
+torchaudio
+gymnasium
 numpy
 pandas
-scikit-learn
-torch
-tensorflow
-opencv-python
 ```
 
-## Trading
+### Recommended
+
+| Setting   | Value                                                                        |
+| --------- | ---------------------------------------------------------------------------- |
+| Python    | 3.11                                                                         |
+| OS        | windows-2022                                                                 |
+| Index URL | [https://download.pytorch.org/whl/cpu](https://download.pytorch.org/whl/cpu) |
+| Output    | release                                                                      |
+
+---
+
+## MetaTrader5
+
+### Packages
 
 ```text
 MetaTrader5
-ccxt
-ta
 numpy
 pandas
 ```
+
+### Recommended
+
+| Setting | Value        |
+| ------- | ------------ |
+| Python  | 3.11         |
+| OS      | windows-2022 |
+| Output  | release      |
+
+---
+
+# Notes
+
+---
+
+## MetaTrader5
+
+`MetaTrader5` is Windows-focused.
+
+For Linux/macOS you may need:
+
+* Wine
+* mt5linux bridge
+* remote MetaTrader server
+
+---
+
+## Large Package Support
+
+Heavy packages like:
+
+* PyTorch
+* TensorFlow
+* CUDA
+* OpenCV
+
+may exceed GitHub repository file limits.
+
+This project uses GitHub Releases to avoid those limitations.
+
+---
+
+## macOS Notes
+
+`macos-13` is recommended for older Intel Macs.
+
+`macos-14` is recommended for newer macOS systems.
 
 ---
 
 # Security Notice
 
-Only download and install packages from trusted sources.
+Only install packages from trusted sources.
 
-Always review package versions before deploying to production systems.
+Always review package versions before production usage.
 
 ---
 
 # License
 
 MIT License
+
+```
+```
